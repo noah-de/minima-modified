@@ -1,0 +1,27 @@
+title: feralo
+logo: ./assets/img/feralo.png
+description: 
+show_downloads: false
+google_analytics:
+theme: jekyll-theme-minimal
+
+collections:
+  publications:
+    output: true
+    permalink: /:collection/:name
+    sort-by: publishdate
+  authors:
+    output: true
+
+# https://jekyllrb.com/docs/step-by-step/09-collections/#front-matter-defaults
+defaults:
+  - scope:
+      path: ""
+      type: "publications"
+    values:
+      layout: "publication"
+  - scope:
+      path: ""
+      type: "authors"
+    values:
+      layout: "author"
