@@ -1,0 +1,10 @@
+- name: Activision
+  url: https://www.activision.com/
+  logo: activision.png
+- name: Amazon
+  url: https://www.amazon.com/
+  logo: amazon.png
+- full_name: Army Research Laboratory
+  name: ARL
+  url: http://www.arl.army.mil/
+  logo: arl.jpg
