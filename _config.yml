@@ -1,5 +1,5 @@
 title: feralo
-logo: ./assets/img/feralo.png
+logo: ./assets/img/f3ral0.png
 description: 
 show_downloads: false
 google_analytics:
@@ -11,6 +11,8 @@ collections:
     permalink: /:collection/:name
     sort-by: publishdate
   authors:
+    output: true
+  members:
     output: true
 
 # https://jekyllrb.com/docs/step-by-step/09-collections/#front-matter-defaults
@@ -25,3 +27,5 @@ defaults:
       type: "authors"
     values:
       layout: "author"
+include:
+  - _pages
