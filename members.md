@@ -1,6 +1,7 @@
 ---
 title: Members
 layout: default
+permalink: /members/
 
 member_categories:
     - Faculty
@@ -16,7 +17,7 @@ member_categories:
   {% for person in site.members %}
    {% if person.portfolio-item-tag contains "current member" %}
   {% if person.portfolio-item-tag contains category %}
-   <div>{{ person.title }}</div>
+   <div> <img src="{{ person.avatar | absolute_url }}" class="blackandwhite"/>{{ person.title }}</div>
    {% endif %}
   {% endif %}
   {% endfor %}

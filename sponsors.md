@@ -1,6 +1,7 @@
 ---
 title: Sponsors
 layout: default
+permalink: /sponsors/
 ---
 <h1>Sponsors</h1>
 {% for sponsor in site.data.sponsors %}
