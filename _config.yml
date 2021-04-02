@@ -14,6 +14,8 @@ collections:
     output: true
   members:
     output: true
+  notes:
+    output: true
 
 # https://jekyllrb.com/docs/step-by-step/09-collections/#front-matter-defaults
 defaults:

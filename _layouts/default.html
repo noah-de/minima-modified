@@ -17,7 +17,7 @@
         <a href="/publications/">publications</a> |
         <a href="/members/">members</a> |
         <a href="/sponsors/">sponsors</a> |
-        <a href="/posts/">posts</a>
+        <a href="/notes/">notes</a>
       </nav>
       <header>
         <h1><a href="{{ "/" | absolute_url }}">{{ site.title | default: site.github.repository_name }}</a></h1>
@@ -46,6 +46,7 @@
       </header>
       <section>
 
+      <h2>{{ page.title }}</h2>
       {{ content }}
 
       </section>
