@@ -11,7 +11,6 @@ member_categories:
     - Post-doctoral Researchers
     - Software Engineer
 ---
-<h2>Members</h2>
 {% for category in page.member_categories %}
   <h2>{{ category }}</h2>
   {% for person in site.members %}
