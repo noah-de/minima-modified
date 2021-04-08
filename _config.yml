@@ -3,7 +3,8 @@ logo: ./assets/img/f3ral0.png
 description: 
 show_downloads: false
 google_analytics:
-theme: jekyll-theme-minimal
+#theme: jekyll-theme-minimal
+theme: minima
 
 collections:
   publications:
