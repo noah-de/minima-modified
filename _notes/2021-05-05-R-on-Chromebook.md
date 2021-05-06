@@ -12,7 +12,7 @@ to the file `/etc/apt/sources.list` on your computer.
 3. `sudo apt update && sudo apt upgrade`
 4. `sudo apt install r-base r-base-dev`
 
-## Install cryptography packages
+### Install cryptography packages
 
 Following along the notes from [a cryptography class](https://djhunter.github.io/cryptography/slides/01intro_crypto.html#/shift-cipher-implemented-in-r), 
 you might want to install some helpful packages. These might have OS pre-requisites, like `lib gmp`:
