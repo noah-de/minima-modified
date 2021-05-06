@@ -1,4 +1,7 @@
-# Installing R on a chromebook
+---
+title: Installing R on a chromebook
+layout: default
+---
 
 Before beginning this, you need to have enabled the Linux shell.
 
