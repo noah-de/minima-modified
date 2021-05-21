@@ -3,7 +3,7 @@
 source 'https://rubygems.org'
 
 gem 'jekyll', '~> 4.2'
-gem "minima", "~> 2.5"
+gem 'jekyll-theme-minimal'
 
 group :jekyll_plugins do
   gem 'jekyll-timeago', '~> 0.13.1'
