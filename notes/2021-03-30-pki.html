@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- Begin Jekyll SEO tag v2.7.1 -->
+<title>Public Key Infrastructure | feralo</title>
+<meta name="generator" content="Jekyll v4.2.0" />
+<meta property="og:title" content="Public Key Infrastructure" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="There are times when you can’t be in the same building as your private local network but want to have the same liberties as if you really were there. Several reasons exist why such a scenario would be desirable:" />
+<meta property="og:description" content="There are times when you can’t be in the same building as your private local network but want to have the same liberties as if you really were there. Several reasons exist why such a scenario would be desirable:" />
+<meta property="og:site_name" content="feralo" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2021-03-30T00:00:00+00:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Public Key Infrastructure" />
+<script type="application/ld+json">
+{"description":"There are times when you can’t be in the same building as your private local network but want to have the same liberties as if you really were there. Several reasons exist why such a scenario would be desirable:","url":"/notes/2021-03-30-pki.html","@type":"BlogPosting","publisher":{"@type":"Organization","logo":{"@type":"ImageObject","url":"/assets/img/f3ral0.png"}},"headline":"Public Key Infrastructure","dateModified":"2021-03-30T00:00:00+00:00","datePublished":"2021-03-30T00:00:00+00:00","mainEntityOfPage":{"@type":"WebPage","@id":"/notes/2021-03-30-pki.html"},"@context":"https://schema.org"}</script>
+<!-- End Jekyll SEO tag -->
+
+    <link rel="stylesheet" href="/assets/css/style.css?v=">
+    <!--[if lt IE 9]>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv.min.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <nav>
+        <a href="/notes/">notes</a>
+      </nav>
+      <header>
+        <h1><a href="/">feralo</a></h1>
+        
+        
+          <img src="/assets/img/f3ral0.png" alt="Logo" />
+        
+
+        <p></p>
+
+        
+
+
+        
+      </header>
+      <section>
+
+      <h2>Public Key Infrastructure</h2>
+      <p>There are times when you can’t be in the same building as your private local network but want to have the same liberties as if you really were there. Several reasons exist why such a scenario would be desirable:</p>
+
+<ul>
+  <li>Sitting behind a firewall</li>
+  <li>utilizing a local DNS to easily access resources by name</li>
+  <li>encrypting your connection to the outside world (and hiding it from your local service provider)</li>
+  <li>Exposing legacy services without needing to insulate with various layers of protection</li>
+</ul>
+
+<p>This is not a new problem and there are already a plethora of solutions out there. <a href="https://www.wireguard.com/">Wireguard</a> (by <a href="https://www.edgesecurity.com/">EdgeSecurity</a>) offers a point to point solution that is quick and easy to set up. Some organizations already have VPN solutions in place and many vendors would be happy to sell you one.</p>
+
+<p>Here are some notes towards a solution to connect people to a private network using open source software. Specifically using something like EasyRSA to set up a PKI (with <a href="https://www.openssl.org/">OpenSSL</a>) which can then be used with <a href="https://openvpn.net/">OpenVPN</a> and <a href="https://vyos.io/">VyOS</a>.</p>
+
+<h2 id="guiding-principles">Guiding Principles</h2>
+<p>If your goal is to create a secure environment. Security should be a primary concern. Keep private things <em>private</em>. According to <a href="https://en.wikipedia.org/wiki/Kerckhoffs%27s_principle">Kerckhoff’s principle</a> (and <strong>Shannon’s maxim</strong>), we can share everything but the key. So… that key had better be safe. How safe? The degree of separation may vary, but it is generally considered a good idea to not keep the key on the infrastructure that you are protecting.</p>
+
+<h2 id="generating-crypto">Generating Crypto</h2>
+
+<p>If you already have an installation of VyOS, you will find that it has EasyRSA included. This is a convenience to admins but we don’t want our key to have ever been on VyOS. We can generate our Key Value pairs on another machine using EasyRSA, OpenSSL or LibreSSL.</p>
+
+<p>For EasyRSA we can grab a copy from the <a href="https://github.com/OpenVPN/easy-rsa/releases">release page</a></p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>wget https://github.com/OpenVPN/easy-rsa/releases/download/v3.0.8/EasyRSA-3.0.8.tgz
+tar -xvzf EasyRSA-3.0.8.tgz
+cd EasyRSA-3.0.8
+</code></pre></div></div>
+
+<p>Now that we have the scripts locally, we can make our PKI.</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>./easyrsa init-pki
+</code></pre></div></div>
+
+<p>That command will create a scaffold of your PKI:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code> pki
+├── openssl-easyrsa.cnf
+├── private
+├── reqs
+└── safessl-easyrsa.cnf
+</code></pre></div></div>
+<p>Copy the example <em>vars</em> file and edit it:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>cat vars.example &gt; vars
+vim vars
+</code></pre></div></div>
+
+<p>Some things that you might want to edit would include the mode (changing from <em>cn_only</em> to <em>org</em>).</p>
+
+<p>Next, build your certificate authority (CA).</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>./easyrsa  build-ca
+</code></pre></div></div>
+
+<p>You will be prompted to enter a passphrase. This is very important to have. Remember that the output of this command will be the ca files (<em>ca.cert</em> and <em>ca.key</em>). The cert file is the one that gets distributed and the key file is the super important file that must never be shared. In addition to not sharing it, it should also be encrypted (with the password).</p>
+
+<p>The generated files are:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>├── pki
+│   ├── ca.crt
+│   ├── index.txt
+│   ├── index.txt.attr
+│   ├── private
+│   │   ├── ca.key
+</code></pre></div></div>
+
+<blockquote>
+  <p>some older references will have you <em>source</em> the vars file at this point. It is no longer needed (as noted at the top of the file). If you execute the file without arguments, you can see the available arguments, and that the vars file is being read.</p>
+</blockquote>
+
+<p>If you are curious to inspect the certificate properties, you can view them:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>openssl x509 -in pki/ca.crt -text
+</code></pre></div></div>
+
+<p>Next, generate the Diffie-Hellman key:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>./easyrsa  gen-dh
+</code></pre></div></div>
+
+<p>Go ahead and generate the crl file (which will list the revoked certificates), it’s an important piece of this PKI.</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>./easyrsa  gen-crl
+</code></pre></div></div>
+
+<p>Consequently, the files are created in the pki folder.</p>
+
+<h2 id="generating-server-certificates">Generating Server certificates</h2>
+<p>While you could take the convenient route and use the <em>nopass</em> flag, don’t be shortsighted. Why not add an extra layer of security by encrypting the private key with a password?</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>./easyrsa gen-req central
+</code></pre></div></div>
+
+<p>Once you issue that command, you will be prompted to enter  and verify a passphrase. Then, you will be prompted to enter every value that you defined in the vars file. It is important to note that the values from the vars file are now the defaults, so you can just accept the defaults.</p>
+
+<p>The resulting files are here:</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>├── pki
+│   ├── private
+│   │   └── central.key
+│   ├── reqs
+│   │   └── central.req
+</code></pre></div></div>
+
+<blockquote>
+  <p>Be sure to save the <code class="language-plaintext highlighter-rouge">central.key</code> file and don’t leave it on a machine that does not need it.</p>
+</blockquote>
+
+<p>Sign a certificate request of the defined type.</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>./easyrsa sign-req server central 
+</code></pre></div></div>
+
+<h2 id="move-the-needed-files-to-vyos">Move the needed files to VyOS</h2>
+<p>Using SCP (or whatever utility you wish), put the needed 5 files in place:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ ls /config/auth/openvpn/
+-rw------- ca.crt
+-rw------- crl.pem
+-rw------- dh4096.pem
+-rw------- central.crt
+-rw------- central.key
+</code></pre></div></div>
+
+<p>Then define them in the VyOS config. When declaring your ovpn tunnel, you will reference these files something like this:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>set interfaces openvpn vtun0 description 'UDP access to the VPN'
+set interfaces openvpn vtun0 encryption 'aes256'
+set interfaces openvpn vtun0 hash 'sha512'
+set interfaces openvpn vtun0 mode 'server'
+set interfaces openvpn vtun0 policy
+set interfaces openvpn vtun0 protocol 'udp'
+set interfaces openvpn vtun0 server push-route '10.0.1.0/24'
+set interfaces openvpn vtun0 server subnet '10.0.2.0/24'
+set interfaces openvpn vtun0 tls ca-cert-file '/config/auth/ovpn/ca.crt'
+set interfaces openvpn vtun0 tls cert-file '/config/auth/ovpn/central.crt'
+set interfaces openvpn vtun0 tls dh-file '/config/auth/ovpn/dh4096.pem'
+set interfaces openvpn vtun0 tls key-file '/config/auth/ovpn/central.key'
+</code></pre></div></div>
+
+<h2 id="generating-client-certificates">Generating Client certificates</h2>
+
+<p>Now comes the best part! As long as you have access to the transferred files (and the super secret <em>cert.key</em>), you can generate client certificates from any other machine to grant access to the PKI. Here is how we would grant access to a client identified by the name <em>user_tom</em>. Even though we use <code class="language-plaintext highlighter-rouge">nopass</code> here, we will still need to input the password to decrypt the <em>ca.key</em> file.</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>./easyrsa build-client-full user_tom nopass
+</code></pre></div></div>
+
+<p>In order for desktop users to import one file (with all the additional options pre-selected), we can combine the 3 files needed into one OVPN file. There are various ways to automate this step. We will leave that as an exercise.</p>
+
+<h3 id="resources">Resources:</h3>
+
+<ul>
+  <li><a href="https://www.linuxjournal.com/content/understanding-public-key-infrastructure-and-x509-certificates">Understanding Public Key Infrastructure and X.509 Certificates</a></li>
+  <li><a href="https://www.itu.int/en/ITU-T/asn1/Pages/introduction.aspx">Introduction to ASN.1</a></li>
+  <li><a href="https://tools.ietf.org/html/rfc5280">RFC 5280 (X.509 standard)</a></li>
+  <li><a href="https://tools.ietf.org/html/rfc1421">RFC 1421 (Privacy Enhanced Mail)</a></li>
+  <li><a href="https://tools.ietf.org/html/rfc2986">RFC 2986 (Certification Request Syntax Specification)</a></li>
+  <li>OpenSSL man pages relating to x509 manipulation, specifically  <code class="language-plaintext highlighter-rouge">man x509</code>  or  <code class="language-plaintext highlighter-rouge">man openssl-x509</code>.</li>
+  <li>OpenSSL man pages relating to secure client, specifically  <code class="language-plaintext highlighter-rouge">man s_client</code>  or  <code class="language-plaintext highlighter-rouge">man openssl-s_client</code></li>
+  <li><a href="https://support.vyos.io/en/kb/articles/basic-openvpn-client-server-configuration-2">VyOS knowledgebase article on basic openvpn client server configuration</a></li>
+  <li><a href="https://docs.vyos.io/en/crux/configuration/interfaces/openvpn.html#openvpn-server">VyOS documentation on OpenVPN</a></li>
+  <li><a href="https://www.adamintech.com/a-beginners-guide-to-easyrsa/">Guide to EasyRSA</a></li>
+  <li><a href="https://crypto.stackexchange.com/a/43700">Cypto file extensions</a></li>
+</ul>
+
+
+      </section>
+      <footer>
+        
+        
+        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
+        <a href="/authors.html">authors</a>
+      </footer>
+    </div>
+    <script src="/assets/js/scale.fix.js"></script>
+    
+  </body>
+</html>
